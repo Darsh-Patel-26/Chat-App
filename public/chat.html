@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Room</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      /* General styles */
+      :root {
+        --bg-light: #f4f4f9;
+        --bg-dark: #121212;
+        --text-light: #333;
+        --text-dark: #fff;
+        --accent: #843cea;
+        --message-bg-light: #ffffff;
+        --message-bg-dark: #1f1f1f;
+        --message-pinned: #ffd700;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-light);
+        color: var(--text-light);
+      }
+
+      body.dark-mode {
+        background-color: var(--bg-dark);
+        color: var(--text-dark);
+      }
+
+      #chatContainer {
+        display: flex;
+        height: 100vh;
+        flex-direction: column;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        background-color: var(--accent);
+        color: white;
+      }
+
+      header button {
+        background-color: transparent;
+        border: none;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      #chatMain {
+        display: flex;
+        flex: 1;
+      }
+
+      #groupSidebar {
+        width: 30%;
+        max-width: 300px;
+        background-color: var(--message-bg-light);
+        overflow-y: auto;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      body.dark-mode #groupSidebar {
+        background-color: var(--message-bg-dark);
+      }
+
+      .group {
+        padding: 15px;
+        border-bottom: 1px solid #ccc;
+        cursor: pointer;
+      }
+
+      .group:hover {
+        background-color: var(--accent);
+        color: white;
+      }
+
+      .selected {
+        background-color: var(--accent);
+      }
+
+      #chatSection {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      #chatBox {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+        background: var(--bg-light);
+      }
+
+      .flexing {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      body.dark-mode #chatBox {
+        background: var(--bg-dark);
+      }
+
+      .message {
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 5px;
+        background: var(--message-bg-light);
+        position: relative;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      body.dark-mode .message {
+        background: var(--message-bg-dark);
+      }
+
+      .message.pinned {
+        background: var(--message-pinned);
+        font-weight: bold;
+      }
+
+      .timestamp {
+        font-size: 0.8em;
+        color: gray;
+      }
+
+      #messageInput {
+        display: flex;
+        padding: 10px;
+        background: var(--bg-light);
+      }
+
+      body.dark-mode #messageInput {
+        background: var(--bg-dark);
+      }
+
+      #messageInput input {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        margin-right: 10px;
+      }
+
+      #messageInput button {
+        padding: 10px 15px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #themeToggle {
+        margin-right: 10px;
+      }
+
+      .time { 
+        font-size: 0.6rem;
+      }
+    
+      @media (max-width: 768px) {
+        #groupSidebar {
+          display: none; /* Hidden by default */
+          position: absolute;
+          z-index: 2;
+          background: var(--message-bg-light);
+          width: 60%;
+          height: 100%;
+          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        #groupSidebar.active {
+          display: block; /* Show sidebar when active */
+        }
+
+        body.dark-mode #groupSidebar {
+          background: var(--message-bg-dark);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chatContainer">
+      <header>
+        <button id="sidebarToggle">☰</button>
+        <span>Welcome, <span id="usernameDisplay"></span></span>
+        <div>
+          <button id="themeToggle"><i class="fas fa-adjust"></i></button>
+          <button id="logoutButton"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+      </header>
+      <div id="chatMain">
+        <!-- Sidebar for groups -->
+        <div id="groupSidebar">
+          <div class="group">Scholarship Help</div>
+          <div class="group">Hostel Help</div>
+        </div>
+
+        <!-- Main chat section -->
+        <div id="chatSection">
+          <div id="chatBox"></div>
+          <div id="messageInput">
+            <input type="text" id="message" placeholder="Type a message..." />
+            <button id="sendButton">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      // Replace these with values from your login process
+      const themeToggle = document.getElementById("themeToggle");
+      const username =
+        localStorage.getItem("username") || prompt("Enter your username:");
+      const isAdmin = localStorage.getItem("isAdmin") === "true";
+
+      const groupSidebar = document.getElementById("groupSidebar");
+      var group = null,
+        currG = "";
+      document.getElementById("usernameDisplay").innerHTML = username;
+
+      function highlightGroup(groupButton) {
+        const allGroups = groupSidebar.querySelectorAll(".group");
+        allGroups.forEach((button) => {
+          button.classList.remove("selected");
+        }); // Remove 'selected' from all groups
+        groupButton.classList.add("selected"); // Add 'selected' class to the clicked group
+      }
+
+      // Function to handle group clicks
+      groupSidebar.addEventListener("click", (e) => {
+        group = e.target.textContent;
+        if (group && currG !== group) {
+          currG = group;
+          highlightGroup(e.target);
+          // Join the group on click
+          socket.emit("joinGroup", { username, group, isAdmin });
+          chatBox.innerHTML = "";
+        }
+      });
+
+      const chatBox = document.getElementById("chatBox");
+      const messageInput = document.getElementById("message");
+      const sendButton = document.getElementById("sendButton");
+
+      // Render messages on the chat
+      function renderMessage({ id, username, message, isPinned }) {
+        const messageElem = document.createElement("div");
+        messageElem.id = `message-${id}`;
+        messageElem.className = `message ${isPinned ? "pinned" : ""} flexing`;
+        messageElem.innerHTML = `    
+                <div id="data">
+                    <strong>${username}:</strong> ${message}
+                    <p class="time">${new Date().toLocaleTimeString()}</p>
+                </div>
+                <div class="actions">
+                    <button onclick="deleteMessage(${id})">Delete</button>
+                    <button onclick="pinMessage(${id})">Pin</button>
+                </div>`;
+        chatBox.appendChild(messageElem);
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+      }
+
+      // Listen for chat history
+      socket.on("chatHistory", (chatHistory) => {
+        chatHistory.forEach((msg) => renderMessage(msg));
+      });
+
+      // Listen for new messages
+      socket.on("message", (msg) => {
+        renderMessage(msg);
+      });
+
+      // Listen for deleted messages
+      socket.on("messageDeleted", (messageId) => {
+        const messageElem = document.getElementById(`message-${messageId}`);
+        if (messageElem) messageElem.remove();
+      });
+
+      // Listen for pinned messages
+      socket.on("messagePinned", (messageId) => {
+        const messageElem = document.getElementById(`message-${messageId}`);
+        if (messageElem) {
+          messageElem.classList.add("pinned");
+        }
+      });
+
+      // Send a new message
+      sendButton.addEventListener("click", () => {
+        const message = messageInput.value.trim();
+        if (message && currG !== "") {
+          socket.emit("sendMessage", { username, group, message });
+          messageInput.value = "";
+        }
+      });
+
+      // Delete a message
+      window.deleteMessage = function (messageId) {
+        socket.emit("deleteMessage", { group, messageId });
+      };
+
+      // Pin a message
+      window.pinMessage = function (messageId) {
+        socket.emit("pinMessage", { group, messageId });
+      };
+
+      document.getElementById("logoutButton").addEventListener("click", () => {
+        localStorage.clear();
+        location.href = "index.html";
+      });
+
+      // Toggle sidebar visibility
+      const sidebarToggle = document.getElementById("sidebarToggle");
+
+      sidebarToggle.addEventListener("click", () => {
+        groupSidebar.classList.toggle("active");
+      });
+
+      // Toggle theme
+      themeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark-mode");
+        themeToggle.innerHTML = document.body.classList.contains("dark-mode")
+          ? '<i class="fas fa-moon"></i>'
+          : '<i class="fas fa-sun"></i>';
+      });
+    </script>
+  </body>
+</html>

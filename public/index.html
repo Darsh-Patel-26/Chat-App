@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+        }
+        .login-container h2 {
+            margin-bottom: 20px;
+        }
+        .login-container input,
+        .login-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .login-container button {
+            width: 100%;
+            padding: 10px;
+            background-color: #25d366;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .login-container button:hover {
+            background-color: #20bc5a;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Group Chat Login</h2>
+        <input type="text" id="username" placeholder="Enter Username" required>
+        <select id="admin-status">
+            <option value="false">Regular User</option>
+            <option value="true">Admin</option>
+        </select>
+        <button id="login-btn">Join Chat</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Function to save user details
+        function saveUserDetails() {
+            const username = document.getElementById('username').value.trim();
+            const isAdmin = document.getElementById('admin-status').value;
+
+            if (!username) {
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            // Save details to localStorage
+            localStorage.setItem('username', username);
+            localStorage.setItem('isAdmin', isAdmin);
+
+            // Redirect to chat page
+            window.location.href = 'chat.html';
+        }
+
+        // Add event listener to the login button
+        document.getElementById('login-btn').addEventListener('click', saveUserDetails);
+    </script>
+</body>
+</html>
