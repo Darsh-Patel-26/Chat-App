@@ -67,7 +67,7 @@ io.on('connection', socket => {
     const message = chat.messages.find(msg => msg.id === messageId)
 
     // Check if the user is an admin or the sender of the message
-    if (socket.data.isAdmin || username === socket.data.username) {
+    if (socket.data.isAdmin || message.username === socket.data.username) {
       // Remove the message from the group's history
       chat.messages = chat.messages.filter(msg => msg.id !== messageId)
 
