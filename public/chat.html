@@ -165,10 +165,10 @@
         margin-right: 10px;
       }
 
-      .time { 
+      .time {
         font-size: 0.6rem;
       }
-    
+
       @media (max-width: 768px) {
         #groupSidebar {
           display: none; /* Hidden by default */
@@ -227,11 +227,19 @@
       const username =
         localStorage.getItem("username") || prompt("Enter your username:");
       const isAdmin = localStorage.getItem("isAdmin") === "true";
+      const pass = localStorage.getItem("adminPassword");
 
       const groupSidebar = document.getElementById("groupSidebar");
       var group = null,
         currG = "";
       document.getElementById("usernameDisplay").innerHTML = username;
+
+      const adminpass = "admin@123";
+
+      if (isAdmin && pass !== adminpass) {
+        alert("Wrong Admin Password");
+        location.href = "index.html";
+      }
 
       function highlightGroup(groupButton) {
         const allGroups = groupSidebar.querySelectorAll(".group");
